@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101827">
+  <meta name="description" content="Open The Lock — custom voice command prototype">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Open The Lock</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1220;--panel:#121e30;--panel2:#1b2b40;--line:#263951;--text:#f3f7fc;--muted:#9aadc2;--green:#61dda1;--blue:#7eb9ff;--red:#ff7b83}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(ellipse at 50% -15%,#1b3551 0,transparent 48%),var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+    .wrap{width:min(100% - 28px,760px);margin:0 auto;padding:24px 0 42px}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+    .brand{display:flex;align-items:center;gap:11px}.logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(145deg,#244765,#17283d);display:grid;place-items:center;border:1px solid #35516d;font-size:21px}
+    h1{font-size:19px;letter-spacing:.08em;margin:0}.sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .pill{border:1px solid var(--line);border-radius:999px;padding:6px 10px;color:var(--muted);font-size:11px;white-space:nowrap}.pill.on{color:var(--green);border-color:#28694f;background:#143326}
+    .card{background:linear-gradient(180deg,rgba(24,39,59,.96),rgba(17,29,46,.96));border:1px solid var(--line);border-radius:22px;padding:20px;margin:14px 0;box-shadow:0 18px 50px #0002}
+    .hero{text-align:center;padding:28px 20px 24px}.mic-wrap{width:116px;height:116px;border-radius:50%;margin:6px auto 17px;background:radial-gradient(circle,#294b65,#1a2e44);border:1px solid #41617b;display:grid;place-items:center;box-shadow:0 0 0 12px #20374d55}
+    .mic{font-size:43px}.listening .mic-wrap{animation:pulse 1.5s infinite;border-color:var(--green)}@keyframes pulse{50%{box-shadow:0 0 0 22px #61dda11a,0 0 30px #61dda144}}
+    h2{font-size:21px;margin:8px 0 4px}.muted{color:var(--muted)}.small{font-size:12px}
+    .phrase{margin:20px auto 0;max-width:420px;padding:13px;border-radius:14px;background:#0d1929;border:1px solid #2b4058}
+    .phrase label{display:block;color:var(--muted);font-size:10px;letter-spacing:.12em;margin-bottom:5px}.phrase strong{font-size:20px;letter-spacing:.04em}
+    button{border:0;border-radius:13px;padding:13px 16px;font:600 14px system-ui;cursor:pointer;background:var(--green);color:#082016;transition:.15s}
+    button:disabled{opacity:.45;cursor:not-allowed}.primary{width:100%;margin-top:18px}.secondary{background:#263b53;color:var(--text);border:1px solid #3b536e}.danger{background:#422630;color:#ffc1c5;border:1px solid #75414b}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:12px}.row + .row{margin-top:12px}
+    .section-title{font-size:14px;font-weight:700;margin:0 0 14px}.status{font-size:13px;color:var(--muted);margin-top:12px;min-height:20px}
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}.tab{padding:10px 7px;background:#142238;color:var(--muted);border:1px solid var(--line);font-size:12px}.tab.active{background:#23415a;color:#fff;border-color:#47718e}
+    .view{display:none}.view.active{display:block}
+    input[type=text],select{width:100%;background:#0c1828;border:1px solid #31475f;border-radius:11px;padding:12px;color:var(--text);font:inherit;outline:none}
+    input:focus,select:focus{border-color:var(--blue)}label.field{display:block;color:var(--muted);font-size:12px;margin:14px 0 7px}
+    .range{width:100%;accent-color:var(--green)}.note{padding:12px 13px;border-radius:12px;background:#182b3d;border:1px solid #2c4962;color:#c1d3e5;font-size:12px;margin-top:14px}
+    .event{padding:12px 0;border-bottom:1px solid #26384d}.event:last-child{border:0}.event strong{font-size:13px}.event time{font-size:11px;color:var(--muted)}
+    .empty{text-align:center;color:var(--muted);padding:22px 5px;font-size:13px}
+    .lock-overlay{position:fixed;inset:0;background:linear-gradient(160deg,#14243a,#080d17 70%);z-index:10;display:none;align-items:center;justify-content:center;text-align:center;padding:25px}
+    .lock-overlay.show{display:flex}.lock-content .lockicon{font-size:48px}.clock{font-size:54px;font-weight:300;letter-spacing:.04em;margin:14px 0 0}.date{color:#c0ccda}.unlock-hint{margin-top:42px;color:#9eafc3;font-size:12px}
+    footer{text-align:center;color:#6f849b;font-size:11px;margin:22px 0}
+    @media(min-width:600px){.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.grid .card{margin:0}.hero{padding:34px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="brand"><div class="logo">🔒</div><div><h1>OPEN THE LOCK</h1><div class="sub">Your custom voice command</div></div></div>
+      <span class="pill" id="appState">NOT LISTENING</span>
+    </header>
+
+    <section class="card hero" id="heroCard">
+      <div class="mic-wrap"><div class="mic">🎙️</div></div>
+      <h2 id="heroTitle">Ready when you are</h2>
+      <div class="muted small" id="heroDesc">Start listening, then say your custom phrase.</div>
+      <div class="phrase"><label>YOUR SECRET PHRASE</label><strong id="phraseDisplay">OPEN THE LOCK</strong></div>
+      <button class="primary" id="listenBtn">▶ Start listening</button>
+      <div class="status" id="status" aria-live="polite">Microphone permission will be requested by your browser.</div>
+    </section>
+
+    <nav class="tabs" aria-label="App sections">
+      <button class="tab active" data-tab="home">Home</button>
+      <button class="tab" data-tab="settings">Settings</button>
+      <button class="tab" data-tab="history">Activity</button>
+    </nav>
+
+    <section class="view active" id="home">
+      <div class="grid">
+        <div class="card"><div class="section-title">Voice engine</div><div class="row"><span class="muted small">Browser support</span><strong id="supportValue">Checking…</strong></div><div class="row"><span class="muted small">Recognition mode</span><strong>Continuous*</strong></div></div>
+        <div class="card"><div class="section-title">Last command</div><strong id="lastCommand">No command detected</strong><div class="muted small" id="lastTime">—</div></div>
+      </div>
+      <div class="note"><strong>Prototype limitation:</strong> This web app can recognize speech while its page is active. It cannot continuously listen after the phone is locked, the browser is closed, or Android suspends the page. It also cannot unlock or directly control your phone's real lock screen.</div>
+    </section>
+
+    <section class="view" id="settings">
+      <div class="card">
+        <div class="section-title">Command settings</div>
+        <label class="field" for="phraseInput">Custom voice phrase</label>
+        <input id="phraseInput" type="text" maxlength="60" value="OPEN THE LOCK" placeholder="Enter your phrase">
+        <label class="field" for="language">Recognition language</label>
+        <select id="language"><option value="en-IN">English (India)</option><option value="en-US">English (United States)</option><option value="en-GB">English (United Kingdom)</option><option value="te-IN">Telugu (India)</option><option value="hi-IN">Hindi (India)</option></select>
+        <label class="field" for="sensitivity">Match sensitivity <span id="sensitivityValue">Medium</span></label>
+        <input class="range" id="sensitivity" type="range" min="1" max="3" value="2">
+        <div class="muted small">High sensitivity accepts closer phrase matches; low sensitivity requires a closer match.</div>
+        <button class="primary" id="saveBtn">Save settings</button>
+        <div class="status" id="settingsStatus"></div>
+      </div>
+      <div class="card"><div class="section-title">Privacy</div><div class="muted small">Speech recognition may be processed by your browser or its speech service. This prototype does not save microphone recordings. Activity entries are stored locally in this browser.</div></div>
+    </section>
+
+    <section class="view" id="history">
+      <div class="card">
+        <div class="row"><div class="section-title" style="margin:0">Detected commands</div><button class="secondary" id="clearHistory" style="padding:8px 11px;font-size:11px">Clear</button></div>
+        <div id="historyList"><div class="empty">No activity yet. Start listening and try your phrase.</div></div>
+      </div>
+    </section>
+    <footer>OPEN THE LOCK · Version 1.0 · Web prototype</footer>
+  </main>
+
+  <div class="lock-overlay" id="lockOverlay" role="dialog" aria-modal="true" aria-label="Voice command detected">
+    <div class="lock-content">
+      <div class="lockicon">🔒</div>
+      <div class="clock" id="clock">--:--</div>
+      <div class="date" id="date"></div>
+      <h2>Voice command detected</h2>
+      <div class="muted">OPEN THE LOCK</div>
+      <div class="unlock-hint">Demo lock-screen preview<br>Tap anywhere to return to the app</div>
+      <button class="secondary" id="closeOverlay" style="margin-top:20px">Return to app</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let recognition = null, listening = false, wakeLock = null, restartTimer = null;
+  let settings = { phrase: 'OPEN THE LOCK', language: 'en-IN', sensitivity: 2 };
+  let history = [];
+  try { settings = {...settings, ...JSON.parse(localStorage.getItem('otl-settings') || '{}')}; } catch {}
+  try { history = JSON.parse(localStorage.getItem('otl-history') || '[]'); } catch {}
+
+  const normalize = s => s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
+  function similarity(a,b) {
+    a=normalize(a); b=normalize(b); if (!a || !b) return 0;
+    if (a === b || a.includes(b) || b.includes(a)) return 1;
+    const aa=a.split(' '), bb=b.split(' '); let matched=0;
+    for (const word of bb) if (aa.some(x => x===word || (x.length>3 && word.length>3 && (x.startsWith(word)||word.startsWith(x))))) matched++;
+    return matched / Math.max(aa.length,bb.length);
+  }
+  function threshold(){ return settings.sensitivity===1 ? .95 : settings.sensitivity===2 ? .67 : .45; }
+  function setStatus(msg){ $('status').textContent=msg; }
+  function setListening(value){
+    listening=value; $('heroCard').classList.toggle('listening',value);
+    $('appState').textContent=value?'LISTENING':'NOT LISTENING';
+    $('appState').classList.toggle('on',value);
+    $('listenBtn').textContent=value?'■ Stop listening':'▶ Start listening';
+    $('heroTitle').textContent=value?'Listening for your phrase':'Ready when you are';
+    $('heroDesc').textContent=value?'Say your custom phrase clearly.':'Start listening, then say your custom phrase.';
+  }
+  function renderSettings(){
+    $('phraseInput').value=settings.phrase; $('phraseDisplay').textContent=settings.phrase;
+    $('language').value=settings.language; $('sensitivity').value=settings.sensitivity;
+    $('sensitivityValue').textContent=['','Low','Medium','High'][settings.sensitivity];
+  }
+  function addEvent(transcript, matched) {
+    const item={transcript, phrase:settings.phrase, time:new Date().toISOString(), matched};
+    history.unshift(item); history=history.slice(0,40);
+    localStorage.setItem('otl-history',JSON.stringify(history)); renderHistory();
+    $('lastCommand').textContent=transcript; $('lastTime').textContent=new Date(item.time).toLocaleString();
+  }
+  function renderHistory(){
+    const root=$('historyList');
+    if(!history.length){root.innerHTML='<div class="empty">No activity yet. Start listening and try your phrase.</div>';return;}
+    root.innerHTML=history.map(item=>`<div class="event"><div class="row"><strong>${escapeHtml(item.transcript)}</strong><span class="pill on">MATCH</span></div><time>${new Date(item.time).toLocaleString()}</time></div>`).join('');
+  }
+  function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  async function requestWakeLock(){
+    try { if ('wakeLock' in navigator) wakeLock=await navigator.wakeLock.request('screen'); } catch {}
+  }
+  function showDemoLock(transcript){
+    addEvent(transcript,true);
+    $('lockOverlay').classList.add('show');
+    updateClock();
+    setStatus('Phrase matched. Showing a demo lock-screen preview.');
+    if (recognition) { try{recognition.stop();}catch{} }
+    setListening(false);
+  }
+  function updateClock(){
+    const now=new Date(); $('clock').textContent=now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    $('date').textContent=now.toLocaleDateString([], {weekday:'long',month:'long',day:'numeric'});
+  }
+  function startRecognition(){
+    if(!SpeechRecognition){setStatus('Speech recognition is not supported in this browser. Try Chrome on Android or desktop Chrome.');return;}
+    if(listening)return;
+    recognition=new SpeechRecognition();
+    recognition.lang=settings.language; recognition.continuous=true; recognition.interimResults=true; recognition.maxAlternatives=3;
+    recognition.onstart=()=>{setListening(true);setStatus('Microphone is active. Say: '+settings.phrase);requestWakeLock();};
+    recognition.onresult=e=>{
+      let finalText='';
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const result=e.results[i]; const transcript=result[0].transcript.trim();
+        if(result.isFinal) finalText += ' '+transcript;
+        else setStatus('Hearing: '+transcript);
+      }
+      if(finalText){
+        const text=finalText.trim(); const score=similarity(text,settings.phrase);
+        setStatus('Heard: "'+text+'" · Match score '+Math.round(score*100)+'%');
+        if(score>=threshold()) showDemoLock(text);
+      }
+    };
+    recognition.onerror=e=>{
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'){setStatus('Microphone permission denied. Allow microphone access in browser settings.');setListening(false);}
+      else if(e.error==='no-speech') setStatus('No speech heard yet. Keep speaking your phrase.');
+      else setStatus('Voice recognition issue: '+e.error);
+    };
+    recognition.onend=()=>{
+      if(listening){clearTimeout(restartTimer);restartTimer=setTimeout(()=>{if(listening){try{recognition.start();}catch{setListening(false);setStatus('Recognition stopped. Tap Start listening to retry.');}}},500);}
+      else {setListening(false);if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null;}}
+    };
+    try{recognition.start();}catch(e){setStatus('Could not start recognition. Please try again.');setListening(false);}
+  }
+  function stopRecognition(){
+    setListening(false);clearTimeout(restartTimer);
+    if(recognition){try{recognition.stop();}catch{}}
+    if(wakeLock){wakeLock.release().catch(()=>{});wakeLock=null;}
+    setStatus('Listening stopped.');
+  }
+  $('listenBtn').addEventListener('click',()=>listening?stopRecognition():startRecognition());
+  $('saveBtn').addEventListener('click',()=>{
+    const phrase=$('phraseInput').value.trim();
+    if(!phrase){$('settingsStatus').textContent='Please enter a voice phrase.';return;}
+    if(listening)stopRecognition();
+    settings={phrase,language:$('language').value,sensitivity:Number($('sensitivity').value)};
+    localStorage.setItem('otl-settings',JSON.stringify(settings));renderSettings();
+    $('settingsStatus').textContent='Settings saved on this device.';
+  });
+  $('sensitivity').addEventListener('input',e=>$('sensitivityValue').textContent=['','Low','Medium','High'][e.target.value]);
+  document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===btn));
+    document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===btn.dataset.tab));
+  }));
+  $('clearHistory').addEventListener('click',()=>{history=[];localStorage.setItem('otl-history','[]');renderHistory();});
+  $('closeOverlay').addEventListener('click',()=>{$('lockOverlay').classList.remove('show');});
+  $('lockOverlay').addEventListener('click',e=>{if(e.target===$('lockOverlay'))$('lockOverlay').classList.remove('show');});
+  $('supportValue').textContent=SpeechRecognition?'Available':'Not available';
+  renderSettings();renderHistory();
+  if(history[0]){$('lastCommand').textContent=history[0].transcript;$('lastTime').textContent=new Date(history[0].time).toLocaleString();}
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
